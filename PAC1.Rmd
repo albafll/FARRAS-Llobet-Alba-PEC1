@@ -1,0 +1,36 @@
+---
+title: "PAC 1 - Anàlisi de dades òmiques"
+author: "Alba Farràs Llobet"
+date: "2024-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introducció
+
+Objectius de l'activitat.
+
+# Descàrrega de les dades
+He cercat un dataset relacionat amb el meu camp a Metabolomics Workbench
+
+# Creació del contenidor SummarizedExperiment
+Explicació dels passos i codi utilitzat.
+
+# Exploració de les dades
+Resultats obtinguts de l'anàlisi exploratòria, incloent gràfiques i taules.
+
+# Repositori de GitHub:
+
+He creat un repositori públic al meu compte de GitHub (@albafll)
+
+https://github.com/albafll/FARRAS-Llobet-Alba-PEC1
+
+
+# Conclusions:
+Reflexió sobre el procés i els resultats.
+
+# Referències:
+Fonts d'informació utilitzades.
