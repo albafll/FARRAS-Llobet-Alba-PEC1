@@ -2,7 +2,9 @@
 title: "PAC 1 - Anàlisi de dades òmiques"
 author: "Alba Farràs Llobet"
 date: "2024-10-27"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -14,7 +16,21 @@ knitr::opts_chunk$set(echo = TRUE)
 Objectius de l'activitat.
 
 # Descàrrega de les dades
-He cercat un dataset relacionat amb el meu camp a Metabolomics Workbench
+He cercat un dataset relacionat amb el meu camp d'interès (obstetrícia i ginecologia) a Metabolomics Workbench.
+
+## Dataset
+
+**Metabolomics Workbench project:** PR001100
+
+**Study ID:** ST001716
+
+**Títol:** Chemical co-exposures assessed via silicone wristbands and endogenous plasma metabolomics during pregnancy
+
+**Autora:** Margaret Karagas. Department of Epidemiology. Dartmouth College. Geisel School of Medicine at Dartmouth, 1 Medical Center Drive, Williamson Translational Research Building, 7th Floor, Lebanon, NH 03756
+
+## Resum del projecte
+
+Data were obtained from participants in the New Hampshire Birth Cohort Study, a prospective pregnancy cohort. Chemical co-exposures were assessed via silicone wristbands worn for one week at approximately 13 gestational weeks. Metabolomic features were assessed in maternal plasma samples obtained at ~24-28 gestational weeks via the Biocrates AbsoluteIDQ® p180 kit and nuclear magnetic resonance (NMR) spectroscopy. Associations between chemical co-exposures and plasma metabolomics were investigated using multivariate modeling to examine the association of chemical co-exposures on the maternal plasma metabolome during pregnancy.
 
 # Creació del contenidor SummarizedExperiment
 Explicació dels passos i codi utilitzat.
