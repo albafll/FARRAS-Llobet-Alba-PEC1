@@ -11,42 +11,163 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Introducció
-
-Objectius de l'activitat.
 
 # Descàrrega de les dades
-He cercat un dataset relacionat amb el meu camp d'interès (obstetrícia i ginecologia) a Metabolomics Workbench.
+He cercat un dataset relacionat amb el meu camp d'interès (Obstetrícia i Ginecologia) a [Metabolomics Workbench](https://www.metabolomicsworkbench.org/).
+
 
 ## Dataset
 
-**Metabolomics Workbench project:** PR001100
+**Metabolomics Workbench project:** [PR000049](https://www.metabolomicsworkbench.org/data/DRCCMetadata.php?Mode=Project&ProjectID=PR000049)
 
-**Study ID:** ST001716
+**Study ID:** [ST000051](https://www.metabolomicsworkbench.org/data/DRCCMetadata.php?Mode=Study&StudyID=ST000051&StudyType=NMR&ResultType=1)
 
-**Títol:** Chemical co-exposures assessed via silicone wristbands and endogenous plasma metabolomics during pregnancy
+**Títol:** 	Biomarkers of Exposure to ARsenic (BEAR) study
 
-**Autora:** Margaret Karagas. Department of Epidemiology. Dartmouth College. Geisel School of Medicine at Dartmouth, 1 Medical Center Drive, Williamson Translational Research Building, 7th Floor, Lebanon, NH 03756
+**Autora:** Rebecca Fry, 1213 Michael Hooker Research Center, 135 Dauer Drive, Campus Box 7431, Chapel Hill, NC 27599
 
 ## Resum del projecte
 
-Data were obtained from participants in the New Hampshire Birth Cohort Study, a prospective pregnancy cohort. Chemical co-exposures were assessed via silicone wristbands worn for one week at approximately 13 gestational weeks. Metabolomic features were assessed in maternal plasma samples obtained at ~24-28 gestational weeks via the Biocrates AbsoluteIDQ® p180 kit and nuclear magnetic resonance (NMR) spectroscopy. Associations between chemical co-exposures and plasma metabolomics were investigated using multivariate modeling to examine the association of chemical co-exposures on the maternal plasma metabolome during pregnancy.
+The BEAR study has been established to assess the health effects associated with prenatal arsenic exposure during neonatal and early life. The study area is in Gómez Palacio, Durango, Mexico where women are exposed to levels of iAs in drinking water up to 236.0 ?g As/L.
 
 # Creació del contenidor SummarizedExperiment
-Explicació dels passos i codi utilitzat.
+
+```{r, warning = FALSE, message = FALSE}
+# Carregar els paquets necessaris
+library(readxl)
+library(SummarizedExperiment)
+library(dplyr)
+
+# Llegir dades metabolòmiques
+data_expr <- read_excel("ST000051/4a. Fetal Metabolomics of iAs exposure Phenotypic and Normalized Binned Data.xlsx") %>%
+  slice(1:50) %>%
+  mutate(Exposure = as.factor(Exposure)) %>%
+  rename(Subject_ID = `Subject ID`) %>%
+  mutate(Subject_ID = as.factor(Subject_ID))
+
+# Les primeres columnes són dades fenotípiques i les restants són dades d'expressió
+phenotypic_data <- data_expr %>% select(1:2) 
+expression_data <- data_expr %>% select(3:ncol(data_expr)) %>% as.matrix()
+expression_data <- t(expression_data)
+
+
+# Assigna els Subject IDs com a noms de les columnes de expression_data
+colnames(expression_data) <- phenotypic_data$`Subject_ID`
+
+
+se <- SummarizedExperiment(
+  assays = list(counts = expression_data),
+  colData = phenotypic_data
+)
+
+se
+
+```
+
 
 # Exploració de les dades
-Resultats obtinguts de l'anàlisi exploratòria, incloent gràfiques i taules.
 
-# Repositori de GitHub:
+## Anàlisi exploratòria
 
-He creat un repositori públic al meu compte de GitHub (@albafll)
+```{r}
+# Resum de les dades fenotípiques
+summary(colData(se)$Exposure)
+
+# PCA
+library(ggplot2)
+
+pca <- prcomp(t(assay(se, "counts")), scale. = TRUE)
+pca_data <- as.data.frame(pca$x)
+pca_data$Exposure <- colData(se)$Exposure
+
+ggplot(pca_data, aes(PC1, PC2, color = Exposure)) +
+  geom_point(size = 3) +
+  labs(title = "PCA de les dades de Metabolòmica", x = "PC1", y = "PC2")
+
+# T-test entre grups d'exposició per cada variable
+t_tests <- apply(assay(se, "counts"), 1, function(x) {
+  t.test(x ~ colData(se)$Exposure)$p.value
+})
+
+# Mostra els resultats més significatius
+t_tests_significant <- which(t_tests < 0.05)
+rownames(se)[t_tests_significant]
+
+
+
+```
+
+
+```{r}
+# Dades d'expressió dels metabòlits significatius
+expr_significant <- assay(se, "counts")[t_tests_significant, ]
+
+# Convertim les dades a format llarg
+library(reshape2)
+expr_long <- melt(expr_significant)
+colnames(expr_long) <- c("Metabolit", "Subject_ID", "Valor")
+
+# Afegim la informació de l'exposició
+expr_long <- merge(expr_long, phenotypic_data, by = "Subject_ID")
+
+# Representem els boxplots
+ggplot(expr_long, aes(x = Exposure, y = Valor, fill = Exposure)) +
+  geom_boxplot() +
+  facet_wrap(~ Metabolit, scales = "free") +
+  theme_minimal() +
+  labs(title = "Diferències en l'expressió dels metabòlits significatius", x = "Exposició", y = "Intensitat")
+
+```
+
+
+# Desat de les dades
+
+## Desar l'objecte SummarizedExperiment en un arxiu .Rda
+
+```{r}
+# Guarda l'objecte SummarizedExperiment en format .Rda
+save(se, file = "SummarizedExperiment.Rda")
+
+```
+## Desar dades en format text .txt
+
+```{r}
+# Exporta dades d'expressió a un fitxer .txt
+write.table(assay(se, "counts"), file = "expression_data.txt", sep = "\t", row.names = TRUE, col.names = NA)
+
+# Exporta dades fenotípiques a un fitxer .txt
+write.table(colData(se), file = "phenotypic_data.txt", sep = "\t", row.names = TRUE, col.names = NA)
+
+```
+
+## Desar metadades en format .md
+
+```{r}
+# Crea un fitxer Markdown amb les metadades del dataset
+metadata_md <- "
+# Metadades del Dataset
+
+## Informació del Projecte
+- Projecte: PR000049
+- Study ID: ST000051
+- Títol: Biomarkers of Exposure to ARsenic (BEAR) study
+- Autora: Rebecca Fry, 1213 Michael Hooker Research Center, Chapel Hill, NC 27599
+
+## Resum
+L'estudi BEAR avalua els efectes en la salut associats amb l'exposició prenatal a l'arsènic a Gómez Palacio, Mèxic, on les dones estan exposades a nivells elevats d'arsènic a l'aigua potable.
+
+## Dades Fenotípiques
+- Subject_ID: Identificador únic del subjecte
+- Exposure: Nivell d'exposició a l'arsènic ('high' o 'low')
+"
+
+writeLines(metadata_md, "metadata.md")
+
+```
+
+
+# Repositori de GitHub
+
+He creat un repositori públic al meu compte de GitHub (@albafll) on hi he desat tots els fitxers de la PAC.
 
 https://github.com/albafll/FARRAS-Llobet-Alba-PEC1
-
-
-# Conclusions:
-Reflexió sobre el procés i els resultats.
-
-# Referències:
-Fonts d'informació utilitzades.
